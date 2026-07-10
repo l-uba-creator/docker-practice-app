@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1
+# Образ Python-клиента, который подключается к контейнеру с PostgreSQL.
+FROM python:3.12-slim
+
+LABEL org.opencontainers.image.title="docker-practice-app-client"
+LABEL org.opencontainers.image.description="Python client that connects to PostgreSQL container (Docker Containers practice)"
+LABEL org.opencontainers.image.source="https://hub.docker.com/r/luba30analyst/docker-practice-app-client"
+
+WORKDIR /app
+
+COPY app/requirements-client.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app/db_client.py ./db_client.py
+
+ARG APP_VERSION=v1
+ENV APP_VERSION=${APP_VERSION}
+
+ENV PG_HOST=db \
+    PG_PORT=5432 \
+    PG_USER=appuser \
+    PG_PASSWORD=apppass \
+    PG_DB=appdb
+
+CMD ["python", "db_client.py"]
