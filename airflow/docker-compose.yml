@@ -1,0 +1,140 @@
+# docker-compose для финального проекта модуля «Автоматизация и деплой».
+# Поднимает Airflow (webserver + scheduler) + PostgreSQL (metadata + warehouse)
+# + MinIO (объектное хранилище, S3-совместимое).
+#
+# Запуск:
+#   cd airflow
+#   docker compose up -d --build
+#   # инициализация БД Airflow:
+#   docker compose exec airflow-scheduler airflow db migrate
+#   docker compose exec airflow-scheduler airflow users create \
+#       --username admin --password admin --firstname a --lastname b \
+#       --role Admin --email admin@example.com
+#   # открыть UI: http://localhost:8080  (admin/admin)
+#   # MinIO console: http://localhost:9001  (minio/minio123)
+#
+# Перед запуском DAG создать Connections (Admin -> Connections):
+#   - pg_warehouse: Postgres, host=postgres, schema=warehouse,
+#     login=airflow, password=airflow, port=5432
+#   - s3_minio: AWS, extra={"endpoint_url":"http://minio:9000",
+#     "region_name":"us-east-1"}
+
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: Dockerfile.airflow
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__FERNET_KEY: "IN_SECURE_DEV_FERNET_KEY_REPLACE_ME_=" 
+    AIRFLOW__WEBSERVER__SECRET_KEY: "dev-secret-key"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    _AIRFLOW_WWW_USER_USERNAME: airflow
+    _AIRFLOW_WWW_USER_PASSWORD: airflow
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./plugins:/opt/airflow/plugins
+    - ./sql:/opt/airflow/sql
+    - airflow_logs:/opt/airflow/logs
+  depends_on:
+    - postgres
+    - minio
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      # Один инстанс: БД airflow (метаданные) + БД warehouse (наши таблицы).
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/init_raw.sql:/docker-entrypoint-initdb.d/01_init_raw.sql
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      retries: 10
+
+  # Одноразовый job: создаёт бакет exports в MinIO (для выгрузки CSV).
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minio minio123;
+      mc mb -p local/exports || true;
+      "
+
+  # Одноразовый job: создаёт БД warehouse для наших агрегатов.
+  warehouse-init:
+    image: postgres:15
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: airflow
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        psql -h postgres -U airflow -d airflow -c "CREATE DATABASE warehouse;" || true
+        psql -h postgres -U airflow -d warehouse -f /docker-entrypoint-initdb.d/01_init_raw.sql
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username admin --password admin \
+          --firstname Admin --lastname User \
+          --role Admin --email admin@example.com || true
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 15s
+      retries: 10
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+  minio_data:
+  airflow_logs:
