@@ -16,6 +16,8 @@ env:
   IMAGE_CLIENT: luba30analyst/docker-practice-app-client
   IMAGE_USERS: luba30analyst/docker-practice-app-users
   IMAGE_VOLUME: luba30analyst/docker-practice-app-volume
+  IMAGE_WEB: luba30analyst/docker-practice-app-web
+  IMAGE_NGINX: luba30analyst/docker-practice-app-nginx
 
 jobs:
   build-and-push:
@@ -98,3 +100,24 @@ jobs:
           tags: |
             ${{ env.IMAGE_VOLUME }}:v1
             ${{ env.IMAGE_VOLUME }}:latest
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.web
+          push: true
+          tags: |
+            ${{ env.IMAGE_WEB }}:v1
+            ${{ env.IMAGE_WEB }}:latest
+          build-args: APP_VERSION=v1
+
+      - name: Build and push nginx image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.nginx
+          push: true
+          tags: |
+            ${{ env.IMAGE_NGINX }}:v1
+            ${{ env.IMAGE_NGINX }}:latest
