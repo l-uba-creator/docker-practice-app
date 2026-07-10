@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Images
 
 on:
   workflow_dispatch:
@@ -11,7 +11,9 @@ on:
     branches: [ main ]
 
 env:
-  IMAGE_NAME: luba30analyst/docker-practice-app
+  IMAGE_APP: luba30analyst/docker-practice-app
+  IMAGE_DB: luba30analyst/docker-practice-app-db
+  IMAGE_CLIENT: luba30analyst/docker-practice-app-client
 
 jobs:
   build-and-push:
@@ -26,26 +28,50 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push v1
+      - name: Build and push app v1
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: true
-          tags: ${{ env.IMAGE_NAME }}:v1
+          tags: ${{ env.IMAGE_APP }}:v1
           build-args: APP_VERSION=v1
 
-      - name: Build and push v2
+      - name: Build and push app v2
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: true
-          tags: ${{ env.IMAGE_NAME }}:v2
+          tags: ${{ env.IMAGE_APP }}:v2
           build-args: APP_VERSION=v2
 
-      - name: Push latest tag
+      - name: Build and push app latest
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: true
-          tags: ${{ env.IMAGE_NAME }}:latest
+          tags: ${{ env.IMAGE_APP }}:latest
           build-args: APP_VERSION=v2
+
+      - name: Build and push db image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.db
+          push: true
+          tags: |
+            ${{ env.IMAGE_DB }}:v1
+            ${{ env.IMAGE_DB }}:latest
+
+      - name: Build and push client image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.client
+          push: true
+          tags: |
+            ${{ env.IMAGE_CLIENT }}:v1
+            ${{ env.IMAGE_CLIENT }}:latest
+          build-args: APP_VERSION=v1
