@@ -1,0 +1,9 @@
+.git/
+.gitignore
+*.md
+*.zip
+docker-images-practice.zip
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
