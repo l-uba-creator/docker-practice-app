@@ -15,6 +15,7 @@ env:
   IMAGE_DB: luba30analyst/docker-practice-app-db
   IMAGE_CLIENT: luba30analyst/docker-practice-app-client
   IMAGE_USERS: luba30analyst/docker-practice-app-users
+  IMAGE_VOLUME: luba30analyst/docker-practice-app-volume
 
 jobs:
   build-and-push:
@@ -87,3 +88,13 @@ jobs:
             ${{ env.IMAGE_USERS }}:v1
             ${{ env.IMAGE_USERS }}:latest
           build-args: APP_VERSION=v1
+
+      - name: Build and push volume image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.volume
+          push: true
+          tags: |
+            ${{ env.IMAGE_VOLUME }}:v1
+            ${{ env.IMAGE_VOLUME }}:latest
