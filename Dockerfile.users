@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+# Образ Python-клиента для практики «Docker Networks».
+# Подключается к контейнеру PostgreSQL по имени хоста (через docker-сеть),
+# создаёт таблицу Users, заполняет тестовыми данными и делает SELECT.
+FROM python:3.12-slim
+
+LABEL org.opencontainers.image.title="docker-practice-app-users"
+LABEL org.opencontainers.image.description="Python client creating Users table in PostgreSQL (Docker Networks practice)"
+LABEL org.opencontainers.image.source="https://hub.docker.com/r/luba30analyst/docker-practice-app-users"
+
+WORKDIR /app
+
+COPY app/requirements-client.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app/users_client.py ./users_client.py
+
+ARG APP_VERSION=v1
+ENV APP_VERSION=${APP_VERSION}
+
+ENV PG_HOST=db \
+    PG_PORT=5432 \
+    PG_USER=appuser \
+    PG_PASSWORD=apppass \
+    PG_DB=appdb
+
+CMD ["python", "users_client.py"]
