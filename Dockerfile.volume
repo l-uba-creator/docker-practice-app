@@ -1,0 +1,18 @@
+# syntax=docker/dockerfile:1
+# Образ PostgreSQL для практики «Docker Volume».
+# Демонстрирует хранение данных БД в томах Docker (anonymous / named / bind mount).
+FROM postgres:16-alpine
+
+LABEL org.opencontainers.image.title="docker-practice-app-volume"
+LABEL org.opencontainers.image.description="PostgreSQL image for Docker Volume practice (anonymous / named / bind mount)"
+LABEL org.opencontainers.image.source="https://hub.docker.com/r/luba30analyst/docker-practice-app-volume"
+
+ENV POSTGRES_USER=appuser \
+    POSTGRES_PASSWORD=apppass \
+    POSTGRES_DB=appdb
+
+# Явно объявляем точку монтирования данных (повторяет инструкцию базового образа,
+# но делает практический смысл томов наглядным).
+VOLUME ["/var/lib/postgresql/data"]
+
+CMD ["postgres"]
