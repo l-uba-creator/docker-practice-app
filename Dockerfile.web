@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+# Образ Flask-веб-приложения для финальной практики Docker Compose.
+FROM python:3.12-slim
+
+LABEL org.opencontainers.image.title="docker-practice-app-web"
+LABEL org.opencontainers.image.description="Flask web app reading users from PostgreSQL (Docker Compose practice)"
+LABEL org.opencontainers.image.source="https://hub.docker.com/r/luba30analyst/docker-practice-app-web"
+
+WORKDIR /app
+
+COPY app/requirements-web.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app/web_app.py ./web_app.py
+
+ARG APP_VERSION=v1
+ENV APP_VERSION=${APP_VERSION}
+
+ENV PG_HOST=db \
+    PG_PORT=5432 \
+    PG_USER=appuser \
+    PG_PASSWORD=apppass \
+    PG_DB=appdb
+
+EXPOSE 8080
+
+CMD ["python", "web_app.py"]
