@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Docker Compose Practice</title>
+<style>
+  body { font-family: Segoe UI, Roboto, sans-serif; margin: 2rem; background:#f4f6f8; }
+  .card { background:#fff; padding:1.5rem 2rem; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+  h1 { color:#0d3b66; margin-top:0; }
+  code { background:#eef; padding:2px 6px; border-radius:3px; }
+  a { color:#0d6efd; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Nginx работает</h1>
+  <p>Это статическая страница, отдаваемая контейнером Nginx.</p>
+  <p>Динамические данные из PostgreSQL (таблица <code>users</code>) доступны на главной страницы,
+     которую проксирует Flask-контейнер: <a href="/">открыть /</a></p>
+  <p>Проверка здоровья Flask: <a href="/health">/health</a></p>
+</div>
+</body>
+</html>
