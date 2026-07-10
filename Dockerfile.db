@@ -1,0 +1,15 @@
+# syntax=docker/dockerfile:1
+# Образ PostgreSQL с init-схемой для практики «Докер Containers».
+FROM postgres:16-alpine
+
+LABEL org.opencontainers.image.title="docker-practice-app-db"
+LABEL org.opencontainers.image.description="PostgreSQL image with init schema (Docker Containers practice)"
+LABEL org.opencontainers.image.source="https://hub.docker.com/r/luba30analyst/docker-practice-app-db"
+
+ENV POSTGRES_USER=appuser \
+    POSTGRES_PASSWORD=apppass \
+    POSTGRES_DB=appdb
+
+COPY db/init.sql /docker-entrypoint-initdb.d/init.sql
+
+CMD ["postgres"]
