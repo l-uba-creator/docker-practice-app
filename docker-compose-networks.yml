@@ -1,0 +1,38 @@
+# docker-compose для практики «Docker Networks».
+# Связка PostgreSQL + Python-клиент (таблица Users) в пользовательской bridge-сети.
+# DNS-резолвинг имён работает по умолчанию, поэтому клиент подключается к db по имени.
+
+services:
+  db:
+    image: luba30analyst/docker-practice-app-db:v1
+    container_name: practice-db
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: apppass
+      POSTGRES_DB: appdb
+    networks:
+      - practice-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d appdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  users:
+    image: luba30analyst/docker-practice-app-users:v1
+    container_name: practice-users
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_HOST: db
+      PG_PORT: "5432"
+      PG_USER: appuser
+      PG_PASSWORD: apppass
+      PG_DB: appdb
+    networks:
+      - practice-net
+
+networks:
+  practice-net:
+    driver: bridge
