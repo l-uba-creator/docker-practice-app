@@ -1,0 +1,62 @@
+# Финальная практика модуля Docker — Docker Compose.
+# Три контейнера в одной изолированной сети + named volume:
+#   1. db    — PostgreSQL (данные в томе pgdata)
+#   2. web   — Flask, подключается к БД, отдаёт страницу с пользователями
+#   3. nginx — reverse proxy перед web + раздача статики
+#
+#   docker compose -f docker-compose-final.yml up --build
+#   Открыть в браузере: http://localhost:8080
+#   docker compose -f docker-compose-final.yml down
+
+services:
+  db:
+    image: luba30analyst/docker-practice-app-db:v1
+    container_name: compose-db
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: apppass
+      POSTGRES_DB: appdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - appnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d appdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    image: luba30analyst/docker-practice-app-web:v1
+    container_name: compose-web
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_HOST: db
+      PG_PORT: "5432"
+      PG_USER: appuser
+      PG_PASSWORD: apppass
+      PG_DB: appdb
+    networks:
+      - appnet
+
+  nginx:
+    image: luba30analyst/docker-practice-app-nginx:v1
+    container_name: compose-nginx
+    depends_on:
+      - web
+    ports:
+      - "8080:80"
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: bridge
+    name: compose-appnet
+
+volumes:
+  pgdata:
+    driver: local
+    name: compose-pgdata
