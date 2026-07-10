@@ -1,0 +1,23 @@
+# docker-compose для практики «Docker Volume».
+# PostgreSQL с именованным томом — данные сохраняются после удаления контейнеров.
+
+services:
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.volume
+    image: luba30analyst/docker-practice-app-volume:v1
+    container_name: practice-volume-db
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: apppass
+      POSTGRES_DB: appdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+    driver: local
+
